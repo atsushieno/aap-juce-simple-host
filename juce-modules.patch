@@ -1,0 +1,16 @@
+diff --git a/modules/juce_audio_processors/scanning/juce_PluginDirectoryScanner.cpp b/modules/juce_audio_processors/scanning/juce_PluginDirectoryScanner.cpp
+index 7f79c0d38..7c6c93151 100644
+--- a/modules/juce_audio_processors/scanning/juce_PluginDirectoryScanner.cpp
++++ b/modules/juce_audio_processors/scanning/juce_PluginDirectoryScanner.cpp
+@@ -125,7 +125,11 @@ bool PluginDirectoryScanner::skipNextFile()
+ void PluginDirectoryScanner::setDeadMansPedalFile (const StringArray& newContents)
+ {
+     if (deadMansPedalFile.getFullPathName().isNotEmpty())
++    {
++        if (!deadMansPedalFile.getParentDirectory().exists())
++            deadMansPedalFile.getParentDirectory().createDirectory();
+         deadMansPedalFile.replaceWithText (newContents.joinIntoString ("\n"), true, true);
++    }
+ }
+ 
+ void PluginDirectoryScanner::applyBlacklistingsFromDeadMansPedal (KnownPluginList& list, const File& file)

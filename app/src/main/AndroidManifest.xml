@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<manifest
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:versionCode="1" android:versionName="1.0.0"
+    package="org.androidaudioplugin.samples.simple_plugin_host">
+
+  <!-- required since Android 11 -->
+  <queries>
+    <intent>
+      <action android:name="org.androidaudioplugin.AudioPluginService.V2" />
+    </intent>
+  </queries>
+
+  <supports-screens android:smallScreens="true" android:normalScreens="true" android:largeScreens="true" android:anyDensity="true" android:xlargeScreens="true"/>
+
+  <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+  <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+  <uses-permission android:name="android.permission.BLUETOOTH"/>
+  <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
+
+  <application android:label="@string/app_name" android:hardwareAccelerated="false">
+    <activity android:name="com.rmsl.juce.JuceActivity" android:label="@string/app_name" android:configChanges="keyboardHidden|orientation|screenSize"
+              android:screenOrientation="userLandscape" android:launchMode="singleTask" android:hardwareAccelerated="true" android:exported="true">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN"/>
+        <category android:name="android.intent.category.LAUNCHER"/>
+      </intent-filter>
+    </activity>
+
+    <provider android:name="androidx.startup.InitializationProvider"
+        android:authorities="${applicationId}.juce_app_initializer"
+        android:exported="false"
+        tools:node="merge"
+        tools:replace="android:authorities">
+      <meta-data android:name="org.androidaudioplugin.hosting.AudioPluginClientInitializer" android:value="androidx.startup" />
+      <meta-data android:name="org.androidaudioplugin.juce.JuceAppInitializer" android:value="androidx.startup" />
+    </provider>
+  </application>
+</manifest>

@@ -1,0 +1,6 @@
+rootProject.name = 'aap-juce-simple-host'
+include ':app'
+// When debugging, enable these lines (and change `implementation` section in build.gradle.
+//include ':androidaudioplugin'
+//project(':androidaudioplugin').projectDir = new File('external/aap-core/androidaudioplugin')
+
