@@ -33,11 +33,12 @@ android {
     }
 
     dependencies {
-        implementation "androidx.core:core-ktx:1.9.0"
-        implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-        implementation "androidx.startup:startup-runtime:1.1.1"
-        implementation "dev.atsushieno:libcxx-provider:$ndk_version"
-        implementation "org.androidaudioplugin:androidaudioplugin:$aap_version"
+        implementation libs.androidx.core.ktx
+        implementation libs.kotlin.stdlib.jdk7
+        implementation libs.startup.runtime
+        implementation libs.aap.core
+        // When debugging, enable this line (and make changes in settings.gradle.)
+        //implementation project(":androidaudioplugin")
     }
 
     externalNativeBuild {
@@ -57,6 +58,6 @@ android {
         abortOnError = false
     }
 
-    ndkVersion "$ndk_version"
+    ndkVersion libs.versions.ndk.get()
 }
 
