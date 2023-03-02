@@ -41,9 +41,7 @@ public:
     AudioPluginFormatManager& getPluginFormatManager() { return pluginFormatManager; }
     KnownPluginList& getKnownPluginList() { return knownPluginList; }
 
-    void scanPlugins(int32_t formatIndex) {
-        auto formats = getPluginFormatManager().getFormats();
-        auto format = formats[formatIndex];
+    void scanPlugins(AudioPluginFormat* format) {
         OwnedArray<PluginDescription> pluginDescriptions{};
         {
             auto& list = getKnownPluginList();
@@ -106,6 +104,14 @@ class MainComponent : public Component {
     ComboBox comboBoxMidiInDevices{};
     ComboBox comboBoxMidiOutDevices{};
 
+    class AudioPluginFormatComparer {
+    public:
+        int compareElements (AudioPluginFormat* first, AudioPluginFormat* second)
+        {
+            return first->getName().compare(second->getName());
+        }
+    };
+
 public:
     MainComponent() {
         auto& formatManager = appModel->getPluginFormatManager();
@@ -115,7 +121,10 @@ public:
 #endif
 
         // trivial formats first, then non-trivial formats follow.
-        for (auto format : formatManager.getFormats())
+        juce::Array<AudioPluginFormat*> formats{formatManager.getFormats()};
+        AudioPluginFormatComparer cmp{};
+        formats.sort<AudioPluginFormatComparer>(cmp);
+        for (auto format : formats)
             if (format->isTrivialToScan())
                 comboBoxPluginFormats.addItem(format->getName(), comboBoxPluginFormats.getNumItems() + 1);
         for (auto format : formatManager.getFormats())
@@ -123,8 +132,8 @@ public:
                 comboBoxPluginFormats.addItem(format->getName(), comboBoxPluginFormats.getNumItems() + 1);
         comboBoxPluginFormats.setSelectedId(1);
 
-        buttonScanPlugins.onClick = [&] {
-            appModel->scanPlugins(comboBoxPluginFormats.getSelectedId() - 1);
+        buttonScanPlugins.onClick = [this, formats] {
+            appModel->scanPlugins(formats[comboBoxPluginFormats.getSelectedId() - 1]);
             updatePluginListOnUI();
         };
 
@@ -159,12 +168,16 @@ public:
                 for (auto format : formatManager.getFormats()) {
                     if (format->getName() != comboBoxPluginFormats.getText())
                         continue;
-                    format->createPluginInstanceAsync(desc, 44100, 1024 * 32, [&](std::unique_ptr<AudioPluginInstance> instance, String uid) {
-                        appModel->instance = std::move(instance);
-                        appModel->instance->prepareToPlay(44100, 1024);
-                        AudioBuffer<float> buffer{2, 1024};
-                        MidiBuffer midiMessages{};
-                        appModel->instance->processBlock(buffer, midiMessages);
+                    format->createPluginInstanceAsync(desc, 44100, 1024 * 32, [&](std::unique_ptr<AudioPluginInstance> instance, String error) {
+                        if (error.isEmpty()) {
+                            appModel->instance = std::move(instance);
+                            appModel->instance->prepareToPlay(44100, 1024);
+                            AudioBuffer<float> buffer{2, 1024};
+                            MidiBuffer midiMessages{};
+                            appModel->instance->processBlock(buffer, midiMessages);
+                        } else {
+                            AlertWindow::showMessageBoxAsync(MessageBoxIconType::WarningIcon, "Plugin Error", error);
+                        }
                     });
                 }
             }
