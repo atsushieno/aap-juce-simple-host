@@ -2,6 +2,7 @@
 #include <memory>
 #include <JuceHeader.h>
 #include <juce_audio_devices/juce_audio_devices.h>
+#include <juce_audio_utils/juce_audio_utils.h>
 #if JUCEAAP_ENABLED
 #include <juceaap_audio_processors/juceaap_audio_plugin_format.h>
 #endif
@@ -98,6 +99,13 @@ class MainComponent : public Component {
     ComboBox comboBoxPlugins{};
     TextButton buttonInstantiate{"Instantiate"};
     Label labelStatusText{};
+
+    ToggleButton mpeToggle{"MPE"};
+    MidiKeyboardState keyboardState;
+    MidiKeyboardComponent keyboard{keyboardState, KeyboardComponentBase::Orientation::horizontalKeyboard};
+    MPEZoneLayout mpeZoneLayout{MPEZone{MPEZone::Type::lower, 7}, MPEZone{MPEZone::Type::upper, 7}};
+    MPEInstrument mpeInstrument{mpeZoneLayout};
+    MPEKeyboardComponent mpeKeyboard{mpeInstrument, KeyboardComponentBase::Orientation::horizontalKeyboard};
 
     TextButton buttonSetupMidiInDevices{"Setup MIDI In"};
     TextButton buttonSetupMidiOutDevices{"Setup MIDI Out"};
@@ -201,6 +209,26 @@ public:
 
         updatePluginListOnUI();
 
+        // Set MIDI/MPE keyboard
+        mpeToggle.setBounds(0, 300, 400, 50);
+        mpeToggle.onClick = [&] {
+            if (keyboard.isVisible())
+                mpeKeyboard.setLowestVisibleKey(keyboard.getLowestVisibleKey());
+            else
+                keyboard.setLowestVisibleKey(mpeKeyboard.getLowestVisibleKey());
+            keyboard.setVisible(!keyboard.isVisible());
+            mpeKeyboard.setVisible(!mpeKeyboard.isVisible());
+        };
+        addAndMakeVisible(mpeToggle);
+        keyboard.setBounds(0, 350, 400, 50);
+        addAndMakeVisible(keyboard);
+        mpeInstrument.enableLegacyMode();
+        mpeInstrument.setZoneLayout(mpeZoneLayout);
+        mpeKeyboard.setBounds(0, 350, 400, 50);
+        addAndMakeVisible(mpeKeyboard);
+        mpeKeyboard.setVisible(false);
+
+        /*
         // Setup MIDI devices playgound
         buttonSetupMidiInDevices.onClick = [&] {
             comboBoxMidiInDevices.clear(NotificationType::sendNotificationAsync);
@@ -222,6 +250,7 @@ public:
         addAndMakeVisible(buttonSetupMidiOutDevices);
         addAndMakeVisible(comboBoxMidiInDevices);
         addAndMakeVisible(comboBoxMidiOutDevices);
+        */
     }
 
     void updatePluginListOnUI() {

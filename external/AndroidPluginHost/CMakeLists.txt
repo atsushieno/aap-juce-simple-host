@@ -83,6 +83,7 @@ target_sources(AndroidPluginHost PRIVATE
 target_link_libraries(AndroidPluginHost PUBLIC
         juce::juce_audio_devices
         juce::juce_audio_processors
+        juce::juce_audio_utils
         juce::juce_recommended_warning_flags
         juce::juce_recommended_config_flags
         juce::juce_recommended_lto_flags
