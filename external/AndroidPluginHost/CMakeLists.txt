@@ -63,6 +63,7 @@ target_compile_definitions(AndroidPluginHost PUBLIC
         # What happens if not? java.lang.UnsatisfiedLinkError: No implementation found for void com.rmsl.juce.JuceActivity.appOnResume() !
         -DJUCE_PUSH_NOTIFICATIONS_ACTIVITY="com/rmsl/juce/JuceActivity"
         -DJUCE_PUSH_NOTIFICATIONS=1
+        -DJUCE_USE_ANDROID_OBOE_STABILIZED_CALLBACK=1
         )
 
 endif(JUCEAAP_ENABLED)
