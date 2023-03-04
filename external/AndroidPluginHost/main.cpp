@@ -12,7 +12,7 @@ const char* SETTINGS_PLUGIN_LIST = "plugin-list";
 
 class AppModel : public MidiKeyboardState::Listener {
     ApplicationProperties settings{};
-    std::unique_ptr<AudioDeviceManager> audioDeviceManager{nullptr};
+    AudioDeviceManager audioDeviceManager{};
     KnownPluginList knownPluginList{};
     AudioPluginFormatManager pluginFormatManager{};
     PluginDescription selectedPlugin{};
@@ -38,20 +38,24 @@ public:
         androidAudioPluginFormat = std::make_unique<juceaap::AndroidAudioPluginFormat>();
 #endif
 
+        audioDeviceManager.initialiseWithDefaultDevices(2, 2);
+        audioDeviceManager.addAudioCallback(&player);
+
         audioInputNode = graph.addNode(std::make_unique<AudioProcessorGraph::AudioGraphIOProcessor>(AudioProcessorGraph::AudioGraphIOProcessor::audioInputNode));
         midiInputNode = graph.addNode(std::make_unique<AudioProcessorGraph::AudioGraphIOProcessor>(AudioProcessorGraph::AudioGraphIOProcessor::midiInputNode));
-        player.setProcessor(&graph);
         audioOutputNode = graph.addNode(std::make_unique<AudioProcessorGraph::AudioGraphIOProcessor>(AudioProcessorGraph::AudioGraphIOProcessor::audioOutputNode));
         midiOutputNode = graph.addNode(std::make_unique<AudioProcessorGraph::AudioGraphIOProcessor>(AudioProcessorGraph::AudioGraphIOProcessor::midiOutputNode));
 
         for (int channel = 0; channel < 2; ++channel)
             graph.addConnection ({ { audioInputNode->nodeID,  channel },
                                    { audioOutputNode->nodeID, channel } });
-        graph.enableAllBuses();
+
+        player.setProcessor(&graph);
     }
 
     ~AppModel() = default;
 
+    AudioDeviceManager& getAudioDeviceManager() { return audioDeviceManager; }
     AudioPluginFormatManager& getPluginFormatManager() { return pluginFormatManager; }
     KnownPluginList& getKnownPluginList() { return knownPluginList; }
 
@@ -99,8 +103,45 @@ public:
     }
 #endif
 
-    void addInstance(std::unique_ptr<AudioPluginInstance> instance) {
+    void addActiveInstance(std::unique_ptr<AudioPluginInstance> instance) {
         graph.addNode(std::move(instance));
+        updateGraph();
+    }
+
+    void removeActiveInstance(AudioProcessorGraph::Node::Ptr node) {
+        graph.removeNode(node->nodeID);
+        updateGraph();
+    }
+
+    void updateGraph() {
+        for (auto node : graph.getNodes())
+            graph.disconnectNode(node->nodeID);
+        juce::ReferenceCountedArray<AudioProcessorGraph::Node> plugins;
+        for (auto node : graph.getNodes()) {
+            if (node->nodeID == audioInputNode->nodeID ||
+                node->nodeID == audioOutputNode->nodeID ||
+                node->nodeID == midiInputNode->nodeID ||
+                node->nodeID == midiOutputNode->nodeID)
+                continue;
+            plugins.add(node);
+        }
+        auto prev = audioInputNode;
+        for (auto node : plugins) {
+            for (int channel = 0; channel < 2; ++channel) {
+                graph.addConnection ({ { prev->nodeID, channel },
+                                       { node->nodeID, channel } });
+            }
+        }
+        for (int channel = 0; channel < 2; ++channel) {
+            graph.addConnection ({ { prev->nodeID, channel },
+                                   { audioOutputNode->nodeID, channel } });
+        }
+
+        graph.addConnection ({ { midiInputNode->nodeID,  juce::AudioProcessorGraph::midiChannelIndex },
+                                        { midiOutputNode->nodeID, juce::AudioProcessorGraph::midiChannelIndex } });
+
+        for (auto node : graph.getNodes())
+            node->getProcessor()->enableAllBuses();
     }
 
     void handleNoteOn (MidiKeyboardState* source,
@@ -127,7 +168,9 @@ class MainComponent : public Component {
     ComboBox comboBoxPluginFormats{};
     ComboBox comboBoxPluginVendors{};
     ComboBox comboBoxPlugins{};
-    TextButton buttonInstantiate{"Instantiate"};
+    ComboBox comboBoxActivePlugins{};
+    TextButton buttonAddPlugin{"Add"};
+    TextButton buttonRemove{"Remove"};
     Label labelStatusText{};
 
     ToggleButton mpeToggle{"MPE"};
@@ -152,6 +195,7 @@ class MainComponent : public Component {
 
 public:
     MainComponent() {
+
         auto& formatManager = appModel->getPluginFormatManager();
         formatManager.addDefaultFormats();
 #if ANDROID
@@ -196,7 +240,7 @@ public:
             }
         };
 
-        buttonInstantiate.onClick = [&] {
+        buttonAddPlugin.onClick = [&] {
             auto& desc = appModel->getSelectedPlugin();
             if (desc.uniqueId != 0) {
                 for (auto format : formatManager.getFormats()) {
@@ -204,7 +248,9 @@ public:
                         continue;
                     format->createPluginInstanceAsync(desc, 44100, 1024 * 32, [&](std::unique_ptr<AudioPluginInstance> instance, String error) {
                         if (error.isEmpty()) {
-                            appModel->addInstance(std::move(instance));
+                            comboBoxActivePlugins.addItem(instance->getName(), comboBoxActivePlugins.getNumItems() + 1);
+                            comboBoxActivePlugins.setSelectedId(comboBoxActivePlugins.getNumItems(), NotificationType::sendNotificationAsync);
+                            appModel->addActiveInstance(std::move(instance));
                         } else {
                             AlertWindow::showMessageBoxAsync(MessageBoxIconType::WarningIcon, "Plugin Error", error);
                         }
@@ -218,15 +264,17 @@ public:
         buttonScanPlugins.setBounds(0, 50, 200, 50);
         comboBoxPluginVendors.setBounds(0, 100, 400, 50);
         comboBoxPlugins.setBounds(0, 150, 400, 50);
-        buttonInstantiate.setBounds(0, 200, 200, 50);
-        labelStatusText.setBounds(0, 250, 200, 50);
+        buttonAddPlugin.setBounds(0, 200, 200, 50);
+        comboBoxActivePlugins.setBounds(0, 250, 400, 50);
+        labelStatusText.setBounds(0, 300, 200, 50);
 
         addAndMakeVisible(comboBoxPluginFormats);
         addAndMakeVisible(buttonScanPlugins);
         addAndMakeVisible(comboBoxPluginVendors);
         addAndMakeVisible(comboBoxPlugins);
-        addAndMakeVisible(buttonInstantiate);
+        addAndMakeVisible(buttonAddPlugin);
         addAndMakeVisible(labelStatusText);
+        addAndMakeVisible(comboBoxActivePlugins);
         labelStatusText.setText("Ready", NotificationType::sendNotificationAsync);
 
         updatePluginVendorListOnUI();
@@ -234,7 +282,7 @@ public:
 
         // Set MIDI/MPE keyboard
         midiKeyboardState.addListener(appModel);
-        mpeToggle.setBounds(0, 300, 400, 50);
+        mpeToggle.setBounds(0, 400, 400, 50);
         mpeToggle.onClick = [&] {
             if (midiKeyboard.isVisible())
                 mpeKeyboard.setLowestVisibleKey(midiKeyboard.getLowestVisibleKey());
@@ -244,11 +292,11 @@ public:
             mpeKeyboard.setVisible(!mpeKeyboard.isVisible());
         };
         addAndMakeVisible(mpeToggle);
-        midiKeyboard.setBounds(0, 350, 400, 50);
+        midiKeyboard.setBounds(0, 450, 400, 50);
         addAndMakeVisible(midiKeyboard);
         mpeInstrument.enableLegacyMode();
         mpeInstrument.setZoneLayout(mpeZoneLayout);
-        mpeKeyboard.setBounds(0, 350, 400, 50);
+        mpeKeyboard.setBounds(0, 450, 400, 50);
         addAndMakeVisible(mpeKeyboard);
         mpeKeyboard.setVisible(false);
 
@@ -288,8 +336,9 @@ public:
     void updatePluginVendorListOnUI() {
         if (appModel->getKnownPluginList().getNumTypes() == 0)
             return;
+        auto format = getPluginFormats()[comboBoxPluginFormats.getSelectedId() - 1];
         Array<String> vendors{};
-        for (auto &desc: appModel->getKnownPluginList().getTypes()) {
+        for (auto &desc: appModel->getKnownPluginList().getTypesForFormat(*format)) {
             if (!vendors.contains(desc.manufacturerName))
                 vendors.add(desc.manufacturerName);
         }
