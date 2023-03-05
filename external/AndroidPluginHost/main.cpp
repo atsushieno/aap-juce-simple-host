@@ -1,6 +1,7 @@
 #include <iostream>
 #include <memory>
 #include <JuceHeader.h>
+#include <juce_data_structures/juce_data_structures.h>
 #include <juce_audio_devices/juce_audio_devices.h>
 #include <juce_audio_utils/juce_audio_utils.h>
 #if JUCEAAP_ENABLED
@@ -9,6 +10,8 @@
 
 const char* APPLICATION_NAME = "AndroidPluginHost";
 const char* SETTINGS_PLUGIN_LIST = "plugin-list";
+
+using namespace juce;
 
 class AppModel {
     ApplicationProperties settings{};
@@ -158,16 +161,17 @@ public:
     }
 };
 
-std::unique_ptr<AppModel> _appModel{};
+std::unique_ptr<AppModel> appModel{};
 AppModel* getAppModel() {
-    if (!_appModel)
-        _appModel = std::make_unique<AppModel>();
-    return _appModel.get();
+    if (!appModel)
+        appModel = std::make_unique<AppModel>();
+    return appModel.get();
 }
 
-#define appModel (getAppModel())
-
 class MainComponent : public Component {
+    const char* allVendors = "--- All Vendors ---";
+    const char* unnamedVendor = "--- (No Name) ---";
+
     TextButton buttonScanPlugins{"Scan plugins"};
     ComboBox comboBoxPluginFormats{};
     ComboBox comboBoxPluginVendors{};
@@ -246,7 +250,7 @@ public:
             bool filtered = comboBoxPluginVendors.getSelectedId() > 1;
             auto vendor = comboBoxPluginVendors.getText();
             for (auto& desc : appModel->getKnownPluginList().getTypes()) {
-                if (!filtered || desc.manufacturerName == vendor) {
+                if (!filtered || desc.manufacturerName == vendor || desc.manufacturerName.isEmpty() && vendor == unnamedVendor) {
                     if (desc.descriptiveName == comboBoxPlugins.getText()) {
                         appModel->setSelectedPlugin(desc);
                         return;
@@ -379,8 +383,8 @@ public:
                 vendors.add(desc.manufacturerName);
         }
         comboBoxPluginVendors.clear(NotificationType::dontSendNotification);
-        const char* allVendors = "--- All Vendors ---";
         comboBoxPluginVendors.addItem(allVendors, 1);
+        comboBoxPluginVendors.addItem(unnamedVendor, 2);
         for (auto &vendor : vendors)
             if (vendor.isNotEmpty()) // sometimes it is empty
                 comboBoxPluginVendors.addItem(vendor, comboBoxPluginVendors.getNumItems() + 2);
@@ -388,12 +392,12 @@ public:
     }
 
     void updatePluginListOnUI() {
-        auto format = getPluginFormats()[comboBoxPluginFormats.getSelectedId() - 1];
-        bool filtered = comboBoxPluginVendors.getSelectedId() > 1;
+        auto format = getPluginFormats()[comboBoxPluginFormats.getSelectedItemIndex()];
+        bool filtered = comboBoxPluginVendors.getSelectedItemIndex() > 0;
         auto vendor = comboBoxPluginVendors.getText();
         Array<PluginDescription> plugins{};
         for (auto& desc : appModel->getKnownPluginList().getTypesForFormat(*format))
-            if (!filtered || desc.manufacturerName == vendor)
+            if (!filtered || desc.manufacturerName == vendor || desc.manufacturerName.isEmpty() && vendor == unnamedVendor)
                 plugins.add(desc);
         comboBoxPlugins.clear(NotificationType::sendNotificationAsync);
         for (auto& desc : plugins)
@@ -410,6 +414,11 @@ public:
             window->setVisible(true);
         }
     }
+
+    AudioProcessorGraph::Node::Ptr getSelectedActivePlugin() {
+        // FIXME: implement
+        return nullptr;
+    }
 };
 
 class AndroidPluginHostApplication  : public JUCEApplication
@@ -419,7 +428,7 @@ public:
     AndroidPluginHostApplication() = default;
 
     ~AndroidPluginHostApplication() override {
-        _appModel.reset(nullptr);
+        appModel.reset(nullptr);
     }
 
     const String getApplicationName() override       { return ProjectInfo::projectName; }

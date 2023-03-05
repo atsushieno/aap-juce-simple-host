@@ -82,6 +82,7 @@ target_sources(AndroidPluginHost PRIVATE
         main.cpp)
 
 target_link_libraries(AndroidPluginHost PUBLIC
+        juce::juce_data_structures
         juce::juce_audio_devices
         juce::juce_audio_processors
         juce::juce_audio_utils
