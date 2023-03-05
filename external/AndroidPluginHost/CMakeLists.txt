@@ -91,4 +91,4 @@ target_link_libraries(AndroidPluginHost PUBLIC
         juce::juce_recommended_lto_flags
 )
 
-juce_generate_juce_header(AndroidPluginHost)
+#juce_generate_juce_header(AndroidPluginHost)

@@ -1,6 +1,6 @@
 #include <iostream>
 #include <memory>
-#include <JuceHeader.h>
+//#include <JuceHeader.h>
 #include <juce_data_structures/juce_data_structures.h>
 #include <juce_audio_devices/juce_audio_devices.h>
 #include <juce_audio_utils/juce_audio_utils.h>
@@ -8,8 +8,13 @@
 #include <juceaap_audio_processors/juceaap_audio_plugin_format.h>
 #endif
 
-const char* APPLICATION_NAME = "AndroidPluginHost";
-const char* SETTINGS_PLUGIN_LIST = "plugin-list";
+#ifndef APPLICATION_NAME
+#define APPLICATION_NAME "AndroidPluginHost"
+#endif
+#ifndef APPLICATION_VERSION
+#define APPLICATION_VERSION "0.1.0"
+#endif
+#define SETTINGS_PLUGIN_LIST "plugin-list"
 
 using namespace juce;
 
@@ -121,6 +126,15 @@ public:
     void removeActiveInstance(AudioProcessorGraph::Node::Ptr node) {
         graph.removeNode(node->nodeID);
         updateGraph();
+    }
+
+    Array<AudioProcessorGraph::Node::Ptr> getActivePlugins() {
+        Array<AudioProcessorGraph::Node::Ptr> ret{};
+        for (auto node : graph.getNodes())
+            if (node->nodeID != audioInputNode->nodeID && node->nodeID != audioOutputNode->nodeID &&
+                node->nodeID != midiInputNode->nodeID && node->nodeID != midiOutputNode->nodeID)
+                ret.add(node);
+        return ret;
     }
 
     void updateGraph() {
@@ -280,11 +294,21 @@ public:
         };
 
         buttonRemoveActivePlugin.onClick = [&] {
-            // TODO: implement "getSelectedActivePlugin()" and remove it.
+            AlertWindow::showMessageBoxAsync(MessageBoxIconType::WarningIcon,
+                                             "Not supported",
+                                             "Unfortunately, we cannot remove an item from JUCE ComboBox because there is no API for that. Therefore this operation is not supported.");
+            /*
+            auto node = getSelectedActivePlugin();
+            if (node) {
+                appModel->removeActiveInstance(node);
+                updatePluginListOnUI();
+            }*/
         };
 
         buttonShowUI.onClick = [&] {
-            // TODO: implement "getSelectedActivePlugin()" and call showPluginUI().
+            auto node = getSelectedActivePlugin();
+            if (node)
+                showPluginUI(node);
         };
 
         // setup components
@@ -406,7 +430,7 @@ public:
 
     void showPluginUI(AudioProcessorGraph::Node::Ptr node) {
         if (node->getProcessor()->hasEditor()) {
-            auto editor = node->getProcessor()->createEditor();
+            auto editor = node->getProcessor()->createEditorIfNeeded();
             auto window = new PluginWindow(this, node->getProcessor());
             pluginWindows.add(window);
             window->setBounds(editor->getBounds());
@@ -416,7 +440,9 @@ public:
     }
 
     AudioProcessorGraph::Node::Ptr getSelectedActivePlugin() {
-        // FIXME: implement
+        auto index = comboBoxActivePlugins.getSelectedItemIndex();
+        if (index >= 0)
+            return appModel->getActivePlugins()[index];
         return nullptr;
     }
 };
@@ -431,8 +457,8 @@ public:
         appModel.reset(nullptr);
     }
 
-    const String getApplicationName() override       { return ProjectInfo::projectName; }
-    const String getApplicationVersion() override    { return ProjectInfo::versionString; }
+    const String getApplicationName() override       { return APPLICATION_NAME; }
+    const String getApplicationVersion() override    { return APPLICATION_VERSION; }
     bool moreThanOneInstanceAllowed() override       { return true; }
 
     //==============================================================================
