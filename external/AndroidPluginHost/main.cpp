@@ -169,8 +169,14 @@ public:
                                    { audioOutputNode->nodeID, channel } });
         }
 
-        graph.addConnection ({ { midiInputNode->nodeID,  juce::AudioProcessorGraph::midiChannelIndex },
-                                        { midiOutputNode->nodeID, juce::AudioProcessorGraph::midiChannelIndex } });
+        prev = midiInputNode;
+        for (auto node : plugins) {
+            if (node->getProcessor()->acceptsMidi())
+                graph.addConnection ({ { prev->nodeID,  juce::AudioProcessorGraph::midiChannelIndex },
+                                       { node->nodeID, juce::AudioProcessorGraph::midiChannelIndex } });
+            if (node->getProcessor()->producesMidi())
+                prev = node;
+        }
 
         for (auto node : graph.getNodes())
             node->getProcessor()->enableAllBuses();
@@ -415,7 +421,8 @@ public:
 
     juce::Array<AudioPluginFormat*> getPluginFormats() {
         auto& formatManager = appModel->getPluginFormatManager();
-        juce::Array<AudioPluginFormat*> formats{formatManager.getFormats()};
+        juce::Array<AudioPluginFormat*> formats{};
+        formats.addArray(formatManager.getFormats());
         AudioPluginFormatComparer cmp{};
         formats.sort<AudioPluginFormatComparer>(cmp);
         return formats;
