@@ -10,7 +10,7 @@
 const char* APPLICATION_NAME = "AndroidPluginHost";
 const char* SETTINGS_PLUGIN_LIST = "plugin-list";
 
-class AppModel : public MidiKeyboardState::Listener {
+class AppModel {
     ApplicationProperties settings{};
     AudioDeviceManager audioDeviceManager{};
     KnownPluginList knownPluginList{};
@@ -25,11 +25,13 @@ class AppModel : public MidiKeyboardState::Listener {
 
 public:
     AppModel() {
+#if JUCEAAP_ENABLED
+        androidAudioPluginFormat = std::make_unique<juceaap::AndroidAudioPluginFormat>();
+#endif
         pluginFormatManager.addDefaultFormats();
 #if ANDROID
         pluginFormatManager.addFormat(getAndroidAudioPluginFormat());
 #endif
-
 
         PropertiesFile::Options options{};
         options.osxLibrarySubFolder = "Application Support"; // It is super awkward that it has to be set like this. https://github.com/juce-framework/JUCE/blob/69795dc8e589a9eb5df251b6dd994859bf7b3fab/modules/juce_data_structures/app_properties/juce_PropertiesFile.cpp#L64
@@ -41,11 +43,7 @@ public:
         if (pluginList)
             knownPluginList.recreateFromXml(*pluginList);
 
-#if JUCEAAP_ENABLED
-        androidAudioPluginFormat = std::make_unique<juceaap::AndroidAudioPluginFormat>();
-#endif
-
-        audioDeviceManager.initialiseWithDefaultDevices(2, 2);
+        audioDeviceManager.initialiseWithDefaultDevices(0, 2);
         audioDeviceManager.addAudioCallback(&player);
 
         if (RuntimePermissions::isGranted (RuntimePermissions::recordAudio))
@@ -65,6 +63,7 @@ public:
     AudioDeviceManager& getAudioDeviceManager() { return audioDeviceManager; }
     AudioPluginFormatManager& getPluginFormatManager() { return pluginFormatManager; }
     KnownPluginList& getKnownPluginList() { return knownPluginList; }
+    AudioProcessorPlayer& getPluginPlayer() { return player; }
 
     void scanPlugins(AudioPluginFormat* format) {
         OwnedArray<PluginDescription> pluginDescriptions{};
@@ -156,15 +155,6 @@ public:
 
         for (auto node : graph.getNodes())
             node->getProcessor()->enableAllBuses();
-    }
-
-    void handleNoteOn (MidiKeyboardState* source,
-                               int midiChannel, int midiNoteNumber, float velocity) override {
-        player.getMidiMessageCollector().addMessageToQueue(MidiMessage::noteOn(midiChannel, midiNoteNumber, velocity).withTimeStamp(1));
-    }
-    void handleNoteOff (MidiKeyboardState* source,
-                       int midiChannel, int midiNoteNumber, float velocity) override {
-        player.getMidiMessageCollector().addMessageToQueue(MidiMessage::noteOff(midiChannel, midiNoteNumber, velocity).withTimeStamp(1));
     }
 };
 
@@ -319,7 +309,7 @@ public:
         updatePluginListOnUI();
 
         // Set MIDI/MPE keyboard
-        midiKeyboardState.addListener(appModel);
+        midiKeyboardState.addListener(&appModel->getPluginPlayer().getMidiMessageCollector());
         mpeToggle.setBounds(0, 400, 400, 50);
         mpeToggle.onClick = [&] {
             if (midiKeyboard.isVisible())
