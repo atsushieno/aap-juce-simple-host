@@ -25,7 +25,14 @@ class AppModel : public MidiKeyboardState::Listener {
 
 public:
     AppModel() {
+        pluginFormatManager.addDefaultFormats();
+#if ANDROID
+        pluginFormatManager.addFormat(getAndroidAudioPluginFormat());
+#endif
+
+
         PropertiesFile::Options options{};
+        options.osxLibrarySubFolder = "Application Support"; // It is super awkward that it has to be set like this. https://github.com/juce-framework/JUCE/blob/69795dc8e589a9eb5df251b6dd994859bf7b3fab/modules/juce_data_structures/app_properties/juce_PropertiesFile.cpp#L64
         options.applicationName = APPLICATION_NAME;
         options.storageFormat = PropertiesFile::StorageFormat::storeAsXML;
         settings.setStorageParameters(options);
@@ -41,19 +48,19 @@ public:
         audioDeviceManager.initialiseWithDefaultDevices(2, 2);
         audioDeviceManager.addAudioCallback(&player);
 
-        audioInputNode = graph.addNode(std::make_unique<AudioProcessorGraph::AudioGraphIOProcessor>(AudioProcessorGraph::AudioGraphIOProcessor::audioInputNode));
+        if (RuntimePermissions::isGranted (RuntimePermissions::recordAudio))
+            audioInputNode = graph.addNode(std::make_unique<AudioProcessorGraph::AudioGraphIOProcessor>(AudioProcessorGraph::AudioGraphIOProcessor::audioInputNode));
         midiInputNode = graph.addNode(std::make_unique<AudioProcessorGraph::AudioGraphIOProcessor>(AudioProcessorGraph::AudioGraphIOProcessor::midiInputNode));
         audioOutputNode = graph.addNode(std::make_unique<AudioProcessorGraph::AudioGraphIOProcessor>(AudioProcessorGraph::AudioGraphIOProcessor::audioOutputNode));
         midiOutputNode = graph.addNode(std::make_unique<AudioProcessorGraph::AudioGraphIOProcessor>(AudioProcessorGraph::AudioGraphIOProcessor::midiOutputNode));
 
-        for (int channel = 0; channel < 2; ++channel)
-            graph.addConnection ({ { audioInputNode->nodeID,  channel },
-                                   { audioOutputNode->nodeID, channel } });
-
+        graph.enableAllBuses();
         player.setProcessor(&graph);
     }
 
-    ~AppModel() = default;
+    ~AppModel() {
+        audioDeviceManager.removeAudioCallback(&player);
+    }
 
     AudioDeviceManager& getAudioDeviceManager() { return audioDeviceManager; }
     AudioPluginFormatManager& getPluginFormatManager() { return pluginFormatManager; }
@@ -103,9 +110,10 @@ public:
     }
 #endif
 
-    void addActiveInstance(std::unique_ptr<AudioPluginInstance> instance) {
-        graph.addNode(std::move(instance));
+    AudioProcessorGraph::Node::Ptr addActiveInstance(std::unique_ptr<AudioPluginInstance> instance) {
+        auto node = graph.addNode(std::move(instance));
         updateGraph();
+        return node;
     }
 
     void removeActiveInstance(AudioProcessorGraph::Node::Ptr node) {
@@ -118,19 +126,25 @@ public:
             graph.disconnectNode(node->nodeID);
         juce::ReferenceCountedArray<AudioProcessorGraph::Node> plugins;
         for (auto node : graph.getNodes()) {
-            if (node->nodeID == audioInputNode->nodeID ||
+            if (audioInputNode != nullptr && node->nodeID == audioInputNode->nodeID ||
                 node->nodeID == audioOutputNode->nodeID ||
                 node->nodeID == midiInputNode->nodeID ||
                 node->nodeID == midiOutputNode->nodeID)
                 continue;
             plugins.add(node);
+            node->getProcessor()->setPlayConfigDetails(graph.getMainBusNumInputChannels(),
+                                                       graph.getMainBusNumOutputChannels(),
+                                                       graph.getSampleRate(),
+                                                       graph.getBlockSize());
         }
         auto prev = audioInputNode;
         for (auto node : plugins) {
             for (int channel = 0; channel < 2; ++channel) {
-                graph.addConnection ({ { prev->nodeID, channel },
-                                       { node->nodeID, channel } });
+                if (prev != nullptr)
+                    graph.addConnection ({ { prev->nodeID, channel },
+                                           { node->nodeID, channel } });
             }
+            prev = node;
         }
         for (int channel = 0; channel < 2; ++channel) {
             graph.addConnection ({ { prev->nodeID, channel },
@@ -170,7 +184,11 @@ class MainComponent : public Component {
     ComboBox comboBoxPlugins{};
     ComboBox comboBoxActivePlugins{};
     TextButton buttonAddPlugin{"Add"};
-    TextButton buttonRemove{"Remove"};
+    TextButton buttonRemoveActivePlugin{"Remove"};
+    TextButton buttonShowUI{"Show UI"};
+
+    OwnedArray<DocumentWindow> pluginWindows{};
+
     Label labelStatusText{};
 
     ToggleButton mpeToggle{"MPE"};
@@ -193,14 +211,21 @@ class MainComponent : public Component {
         }
     };
 
+    class PluginWindow : public DocumentWindow {
+        MainComponent* owner;
+    public:
+        PluginWindow(MainComponent *mainComponent, AudioProcessor* processor)
+        : DocumentWindow(processor->getName(), Colours::black, DocumentWindow::TitleBarButtons::allButtons),
+        owner(mainComponent) {}
+
+        void closeButtonPressed() override {
+            owner->closePluginWindow(this);
+        }
+    };
+
 public:
     MainComponent() {
-
-        auto& formatManager = appModel->getPluginFormatManager();
-        formatManager.addDefaultFormats();
-#if ANDROID
-        formatManager.addFormat(appModel->getAndroidAudioPluginFormat());
-#endif
+        auto& formatManager = getAppModel()->getPluginFormatManager();
 
         // trivial formats first, then non-trivial formats follow.
         auto formats = getPluginFormats();
@@ -250,7 +275,8 @@ public:
                         if (error.isEmpty()) {
                             comboBoxActivePlugins.addItem(instance->getName(), comboBoxActivePlugins.getNumItems() + 1);
                             comboBoxActivePlugins.setSelectedId(comboBoxActivePlugins.getNumItems(), NotificationType::sendNotificationAsync);
-                            appModel->addActiveInstance(std::move(instance));
+                            auto node = appModel->addActiveInstance(std::move(instance));
+                            showPluginUI(node);
                         } else {
                             AlertWindow::showMessageBoxAsync(MessageBoxIconType::WarningIcon, "Plugin Error", error);
                         }
@@ -259,22 +285,34 @@ public:
             }
         };
 
+        buttonRemoveActivePlugin.onClick = [&] {
+            // TODO: implement "getSelectedActivePlugin()" and remove it.
+        };
+
+        buttonShowUI.onClick = [&] {
+            // TODO: implement "getSelectedActivePlugin()" and call showPluginUI().
+        };
+
         // setup components
         comboBoxPluginFormats.setBounds(0, 0, 100, 50);
-        buttonScanPlugins.setBounds(0, 50, 200, 50);
+        buttonScanPlugins.setBounds(0, 50, 150, 50);
         comboBoxPluginVendors.setBounds(0, 100, 400, 50);
         comboBoxPlugins.setBounds(0, 150, 400, 50);
-        buttonAddPlugin.setBounds(0, 200, 200, 50);
+        buttonAddPlugin.setBounds(0, 200, 150, 50);
         comboBoxActivePlugins.setBounds(0, 250, 400, 50);
-        labelStatusText.setBounds(0, 300, 200, 50);
+        buttonRemoveActivePlugin.setBounds(0, 300, 150, 50);
+        buttonShowUI.setBounds(200, 300, 150, 50);
+        labelStatusText.setBounds(0, 350, 200, 50);
 
         addAndMakeVisible(comboBoxPluginFormats);
         addAndMakeVisible(buttonScanPlugins);
         addAndMakeVisible(comboBoxPluginVendors);
         addAndMakeVisible(comboBoxPlugins);
         addAndMakeVisible(buttonAddPlugin);
-        addAndMakeVisible(labelStatusText);
         addAndMakeVisible(comboBoxActivePlugins);
+        addAndMakeVisible(buttonRemoveActivePlugin);
+        addAndMakeVisible(buttonShowUI);
+        addAndMakeVisible(labelStatusText);
         labelStatusText.setText("Ready", NotificationType::sendNotificationAsync);
 
         updatePluginVendorListOnUI();
@@ -325,6 +363,14 @@ public:
         */
     }
 
+    ~MainComponent() {
+
+    }
+
+    void closePluginWindow(PluginWindow *window) {
+        pluginWindows.removeObject(window);
+    }
+
     juce::Array<AudioPluginFormat*> getPluginFormats() {
         auto& formatManager = appModel->getPluginFormatManager();
         juce::Array<AudioPluginFormat*> formats{formatManager.getFormats()};
@@ -362,6 +408,17 @@ public:
         comboBoxPlugins.clear(NotificationType::sendNotificationAsync);
         for (auto& desc : plugins)
             comboBoxPlugins.addItem(desc.descriptiveName, comboBoxPlugins.getNumItems() + 1);
+    }
+
+    void showPluginUI(AudioProcessorGraph::Node::Ptr node) {
+        if (node->getProcessor()->hasEditor()) {
+            auto editor = node->getProcessor()->createEditor();
+            auto window = new PluginWindow(this, node->getProcessor());
+            pluginWindows.add(window);
+            window->setBounds(editor->getBounds());
+            window->setContentOwned(editor, true);
+            window->setVisible(true);
+        }
     }
 };
 
