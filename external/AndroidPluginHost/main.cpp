@@ -131,8 +131,10 @@ public:
     Array<AudioProcessorGraph::Node::Ptr> getActivePlugins() {
         Array<AudioProcessorGraph::Node::Ptr> ret{};
         for (auto node : graph.getNodes())
-            if (node->nodeID != audioInputNode->nodeID && node->nodeID != audioOutputNode->nodeID &&
-                node->nodeID != midiInputNode->nodeID && node->nodeID != midiOutputNode->nodeID)
+            if ((audioInputNode == nullptr || node->nodeID != audioInputNode->nodeID) &&
+                node->nodeID != audioOutputNode->nodeID &&
+                node->nodeID != midiInputNode->nodeID &&
+                node->nodeID != midiOutputNode->nodeID)
                 ret.add(node);
         return ret;
     }
@@ -142,7 +144,7 @@ public:
             graph.disconnectNode(node->nodeID);
         juce::ReferenceCountedArray<AudioProcessorGraph::Node> plugins;
         for (auto node : graph.getNodes()) {
-            if (audioInputNode != nullptr && node->nodeID == audioInputNode->nodeID ||
+            if ((audioInputNode != nullptr && node->nodeID == audioInputNode->nodeID) ||
                 node->nodeID == audioOutputNode->nodeID ||
                 node->nodeID == midiInputNode->nodeID ||
                 node->nodeID == midiOutputNode->nodeID)
@@ -187,6 +189,7 @@ class MainComponent : public Component {
     const char* unnamedVendor = "--- (No Name) ---";
 
     TextButton buttonScanPlugins{"Scan plugins"};
+    TextButton buttonShowAudioSettings{"Audio Settings"};
     ComboBox comboBoxPluginFormats{};
     ComboBox comboBoxPluginVendors{};
     ComboBox comboBoxPlugins{};
@@ -256,6 +259,25 @@ public:
             updatePluginListOnUI();
         };
 
+        buttonShowAudioSettings.onClick = [&] {
+            auto settings = new AudioDeviceSelectorComponent(appModel->getAudioDeviceManager(),
+                                                         0, 256, 2, 256,
+                                                         true, true, true, false);
+            settings->setBounds(0, 0, 400, 400);
+            class Window : public DocumentWindow {
+            public:
+                Window(String title, Colour backgroundColor, int buttons)
+                : DocumentWindow(title, backgroundColor, buttons) {}
+
+                void closeButtonPressed() override {
+                    delete this;
+                }
+            };
+            auto window = new Window("Audio settings", Colours::black, DocumentWindow::allButtons);
+            window->setContentOwned(settings, true);
+            window->setVisible(true);
+        };
+
         comboBoxPluginVendors.onChange = [&] {
             updatePluginListOnUI();
         };
@@ -314,6 +336,7 @@ public:
         // setup components
         comboBoxPluginFormats.setBounds(0, 0, 100, 50);
         buttonScanPlugins.setBounds(0, 50, 150, 50);
+        buttonShowAudioSettings.setBounds(200, 50, 150, 50);
         comboBoxPluginVendors.setBounds(0, 100, 400, 50);
         comboBoxPlugins.setBounds(0, 150, 400, 50);
         buttonAddPlugin.setBounds(0, 200, 150, 50);
@@ -324,6 +347,7 @@ public:
 
         addAndMakeVisible(comboBoxPluginFormats);
         addAndMakeVisible(buttonScanPlugins);
+        addAndMakeVisible(buttonShowAudioSettings);
         addAndMakeVisible(comboBoxPluginVendors);
         addAndMakeVisible(comboBoxPlugins);
         addAndMakeVisible(buttonAddPlugin);
