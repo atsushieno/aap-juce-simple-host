@@ -1,7 +1,3 @@
-//
-// Created by Atsushi Eno on 2023/03/06.
-//
-
 #ifndef ANDROIDPLUGINHOST_AUDIOPLAYER_H
 #define ANDROIDPLUGINHOST_AUDIOPLAYER_H
 

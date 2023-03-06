@@ -1,7 +1,3 @@
-//
-// Created by Atsushi Eno on 2023/03/06.
-//
-
 #ifndef ANDROIDPLUGINHOST_MPE_H
 #define ANDROIDPLUGINHOST_MPE_H
 
