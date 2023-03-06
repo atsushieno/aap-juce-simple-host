@@ -6,18 +6,35 @@
 #define ANDROIDPLUGINHOST_AUDIOPLAYER_H
 
 #include <juce_audio_processors/juce_audio_processors.h>
+#include "sample_wav.h"
 
 using namespace juce;
 
 class AudioFilePlayerProcessor : public AudioProcessor
 {
-    AudioTransportSource transportSource;
-    std::unique_ptr<AudioFormatReaderSource> readerSource;
-    AudioParameterFloat* playbackSpeed;
+    AudioTransportSource transportSource{};
 
 public:
-    AudioFilePlayerProcessor() {}
+    AudioFilePlayerProcessor()
+    : AudioProcessor(BusesProperties().withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
+                             .withOutput ("Output", juce::AudioChannelSet::stereo(), true)) {
+    }
+    ~AudioFilePlayerProcessor() {
+        transportSource.stop();
+        transportSource.releaseResources();
+    }
+
     AudioTransportSource& getTransportSource() { return transportSource; }
+
+    void playLoadedFile() {
+        AudioFormatManager audioFormatManager;
+        WavAudioFormat format;
+        auto stream = new MemoryInputStream(resources_sample_wav, resources_sample_wav_len, false);
+        auto audioFormatReader = format.createReaderFor(stream, true);
+        auto audioFormatReaderSource = new AudioFormatReaderSource(audioFormatReader, true);
+        transportSource.setSource(audioFormatReaderSource);
+        transportSource.start();
+    }
 
     void releaseResources() override { transportSource.releaseResources(); }
     void prepareToPlay(double sampleRate, int samplesPerBlock) override {

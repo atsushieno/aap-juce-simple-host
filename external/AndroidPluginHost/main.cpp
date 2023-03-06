@@ -122,6 +122,10 @@ public:
     }
 #endif
 
+    AudioFilePlayerProcessor* getAudioPlayer() {
+        return dynamic_cast<AudioFilePlayerProcessor*>(audioPlayerNode->getProcessor());
+    }
+
     AudioProcessorGraph::Node::Ptr addActiveInstance(std::unique_ptr<AudioPluginInstance> instance) {
         auto node = graph.addNode(std::move(instance));
         updateGraph();
@@ -153,16 +157,16 @@ public:
             if ((audioInputNode != nullptr && node->nodeID == audioInputNode->nodeID) ||
                 node->nodeID == audioOutputNode->nodeID ||
                 node->nodeID == midiInputNode->nodeID ||
-                node->nodeID == midiOutputNode->nodeID ||
-                node->nodeID != audioPlayerNode->nodeID)
+                node->nodeID == midiOutputNode->nodeID)
                 continue;
-            plugins.add(node);
             node->getProcessor()->setPlayConfigDetails(graph.getMainBusNumInputChannels(),
                                                        graph.getMainBusNumOutputChannels(),
                                                        graph.getSampleRate(),
                                                        graph.getBlockSize());
+            if (node->nodeID != audioPlayerNode->nodeID)
+                plugins.add(node);
         }
-        // FIXMW: connect audioInputNode too.
+        // FIXME: connect audioInputNode too.
         auto prev = audioPlayerNode;
         for (auto node : plugins) {
             for (int channel = 0; channel < 2; ++channel) {
@@ -210,6 +214,7 @@ class MainComponent : public Component {
     ComboBox comboBoxActivePlugins{};
     TextButton buttonAddPlugin{"Add"};
     TextButton buttonRemoveActivePlugin{"Remove"};
+    TextButton buttonPlayAudio{"Play Audio"};
     TextButton buttonShowUI{"Show UI"};
 
     OwnedArray<DocumentWindow> pluginWindows{};
@@ -341,6 +346,10 @@ public:
             }*/
         };
 
+        buttonPlayAudio.onClick = [&] {
+            appModel->getAudioPlayer()->playLoadedFile();
+        };
+
         buttonShowUI.onClick = [&] {
             auto node = getSelectedActivePlugin();
             if (node)
@@ -356,8 +365,9 @@ public:
         buttonAddPlugin.setBounds(0, 200, 150, 50);
         comboBoxActivePlugins.setBounds(0, 250, 400, 50);
         buttonRemoveActivePlugin.setBounds(0, 300, 150, 50);
-        buttonShowUI.setBounds(200, 300, 150, 50);
-        labelStatusText.setBounds(0, 350, 200, 50);
+        buttonPlayAudio.setBounds(200, 300, 150, 50);
+        buttonShowUI.setBounds(0, 350, 150, 50);
+        labelStatusText.setBounds(200, 350, 200, 50);
 
         addAndMakeVisible(comboBoxPluginFormats);
         addAndMakeVisible(buttonScanPlugins);
@@ -367,12 +377,14 @@ public:
         addAndMakeVisible(buttonAddPlugin);
         addAndMakeVisible(comboBoxActivePlugins);
         addAndMakeVisible(buttonRemoveActivePlugin);
+        addAndMakeVisible(buttonPlayAudio);
         addAndMakeVisible(buttonShowUI);
         addAndMakeVisible(labelStatusText);
         labelStatusText.setText("Ready", NotificationType::sendNotificationAsync);
 
         updatePluginVendorListOnUI();
         updatePluginListOnUI();
+        appModel->updateGraph();
 
         // Set MIDI/MPE keyboard
         midiKeyboardState.addListener(&appModel->getPluginPlayer().getMidiMessageCollector());
