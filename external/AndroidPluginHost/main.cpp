@@ -4,6 +4,9 @@
 #include <juce_data_structures/juce_data_structures.h>
 #include <juce_audio_devices/juce_audio_devices.h>
 #include <juce_audio_utils/juce_audio_utils.h>
+#include "mpe.h"
+#include "audioplayer.h"
+
 #if JUCEAAP_ENABLED
 #include <juceaap_audio_processors/juceaap_audio_plugin_format.h>
 #endif
@@ -29,7 +32,8 @@ class AppModel {
 #endif
     AudioProcessorGraph graph{};
     AudioProcessorPlayer player{};
-    AudioProcessorGraph::Node::Ptr audioInputNode{nullptr}, audioOutputNode{nullptr}, midiInputNode{nullptr}, midiOutputNode{nullptr};
+    AudioProcessorGraph::Node::Ptr audioInputNode{nullptr}, audioOutputNode{nullptr},
+        midiInputNode{nullptr}, midiOutputNode{nullptr}, audioPlayerNode{nullptr};
 
 public:
     AppModel() {
@@ -59,6 +63,7 @@ public:
         midiInputNode = graph.addNode(std::make_unique<AudioProcessorGraph::AudioGraphIOProcessor>(AudioProcessorGraph::AudioGraphIOProcessor::midiInputNode));
         audioOutputNode = graph.addNode(std::make_unique<AudioProcessorGraph::AudioGraphIOProcessor>(AudioProcessorGraph::AudioGraphIOProcessor::audioOutputNode));
         midiOutputNode = graph.addNode(std::make_unique<AudioProcessorGraph::AudioGraphIOProcessor>(AudioProcessorGraph::AudioGraphIOProcessor::midiOutputNode));
+        audioPlayerNode = graph.addNode(std::make_unique<AudioFilePlayerProcessor>());
 
         graph.enableAllBuses();
         player.setProcessor(&graph);
@@ -134,7 +139,8 @@ public:
             if ((audioInputNode == nullptr || node->nodeID != audioInputNode->nodeID) &&
                 node->nodeID != audioOutputNode->nodeID &&
                 node->nodeID != midiInputNode->nodeID &&
-                node->nodeID != midiOutputNode->nodeID)
+                node->nodeID != midiOutputNode->nodeID &&
+                node->nodeID != audioPlayerNode->nodeID)
                 ret.add(node);
         return ret;
     }
@@ -147,7 +153,8 @@ public:
             if ((audioInputNode != nullptr && node->nodeID == audioInputNode->nodeID) ||
                 node->nodeID == audioOutputNode->nodeID ||
                 node->nodeID == midiInputNode->nodeID ||
-                node->nodeID == midiOutputNode->nodeID)
+                node->nodeID == midiOutputNode->nodeID ||
+                node->nodeID != audioPlayerNode->nodeID)
                 continue;
             plugins.add(node);
             node->getProcessor()->setPlayConfigDetails(graph.getMainBusNumInputChannels(),
@@ -155,7 +162,8 @@ public:
                                                        graph.getSampleRate(),
                                                        graph.getBlockSize());
         }
-        auto prev = audioInputNode;
+        // FIXMW: connect audioInputNode too.
+        auto prev = audioPlayerNode;
         for (auto node : plugins) {
             for (int channel = 0; channel < 2; ++channel) {
                 if (prev != nullptr)
@@ -214,6 +222,7 @@ class MainComponent : public Component {
     MPEZoneLayout mpeZoneLayout{MPEZone{MPEZone::Type::lower, 7}, MPEZone{MPEZone::Type::upper, 7}};
     MPEInstrument mpeInstrument{mpeZoneLayout};
     MPEKeyboardComponent mpeKeyboard{mpeInstrument, KeyboardComponentBase::Orientation::horizontalKeyboard};
+    std::unique_ptr<MPEDispatchingListener> mpeListener{nullptr};
 
     TextButton buttonSetupMidiInDevices{"Setup MIDI In"};
     TextButton buttonSetupMidiOutDevices{"Setup MIDI Out"};
@@ -312,7 +321,6 @@ public:
                             comboBoxActivePlugins.addItem(instance->getName(), comboBoxActivePlugins.getNumItems() + 1);
                             comboBoxActivePlugins.setSelectedId(comboBoxActivePlugins.getNumItems(), NotificationType::sendNotificationAsync);
                             auto node = appModel->addActiveInstance(std::move(instance));
-                            showPluginUI(node);
                         } else {
                             AlertWindow::showMessageBoxAsync(MessageBoxIconType::WarningIcon, "Plugin Error", error);
                         }
@@ -368,6 +376,8 @@ public:
 
         // Set MIDI/MPE keyboard
         midiKeyboardState.addListener(&appModel->getPluginPlayer().getMidiMessageCollector());
+        mpeListener = std::make_unique<MPEDispatchingListener>(appModel->getPluginPlayer().getMidiMessageCollector());
+        mpeInstrument.addListener(mpeListener.get());
         mpeToggle.setBounds(0, 400, 400, 50);
         mpeToggle.onClick = [&] {
             if (midiKeyboard.isVisible())
