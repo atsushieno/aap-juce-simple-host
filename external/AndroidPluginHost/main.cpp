@@ -94,18 +94,28 @@ public:
             updatePluginListOnUI();
         };
 
+        static bool isSettingsShown = false;
         buttonShowAudioSettings.onClick = [&] {
+            if (isSettingsShown)
+                return;
+            isSettingsShown = true;
             auto settings = new AudioDeviceSelectorComponent(appModel->getAudioDeviceManager(),
                                                          0, 256, 2, 256,
                                                          true, true, true, false);
-            settings->setBounds(0, 0, 400, 400);
+            settings->setBounds(50, 100, 350, 400);
             class Window : public DocumentWindow {
             public:
                 Window(String title, Colour backgroundColor, int buttons)
                 : DocumentWindow(title, backgroundColor, buttons) {}
 
+                ~Window() override {
+                        isSettingsShown = false;
+                };
+
                 void closeButtonPressed() override {
-                    delete this;
+                    if (!isSettingsShown)
+                        return; // it is an error, but we may be hitting it.
+                    MessageManager::callAsync([this] { delete this; });
                 }
             };
             auto window = new Window("Audio settings", Colours::black, DocumentWindow::allButtons);
