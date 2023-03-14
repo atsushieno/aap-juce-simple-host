@@ -131,7 +131,7 @@ public:
             bool filtered = comboBoxPluginVendors.getSelectedId() > 1;
             auto vendor = comboBoxPluginVendors.getText();
             for (auto& desc : appModel->getKnownPluginList().getTypes()) {
-                if (!filtered || desc.manufacturerName == vendor || desc.manufacturerName.isEmpty() && vendor == unnamedVendor) {
+                if (!filtered || desc.manufacturerName == vendor || (desc.manufacturerName.isEmpty() && vendor == unnamedVendor)) {
                     if (desc.descriptiveName == comboBoxPlugins.getText()) {
                         appModel->setSelectedPlugin(desc);
                         return;
@@ -299,7 +299,7 @@ public:
         auto vendor = comboBoxPluginVendors.getText();
         Array<PluginDescription> plugins{};
         for (auto& desc : appModel->getKnownPluginList().getTypesForFormat(*format))
-            if (!filtered || desc.manufacturerName == vendor || desc.manufacturerName.isEmpty() && vendor == unnamedVendor)
+            if (!filtered || desc.manufacturerName == vendor || (desc.manufacturerName.isEmpty() && vendor == unnamedVendor))
                 plugins.add(desc);
         comboBoxPlugins.clear(NotificationType::sendNotificationAsync);
         for (auto& desc : plugins)
