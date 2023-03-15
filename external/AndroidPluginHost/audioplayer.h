@@ -15,7 +15,7 @@ public:
     : AudioProcessor(BusesProperties().withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
                              .withOutput ("Output", juce::AudioChannelSet::stereo(), true)) {
     }
-    ~AudioFilePlayerProcessor() {
+    ~AudioFilePlayerProcessor() override {
         transportSource.stop();
         transportSource.releaseResources();
     }

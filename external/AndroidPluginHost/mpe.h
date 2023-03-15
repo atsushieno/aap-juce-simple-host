@@ -62,7 +62,7 @@ private:
         pitchBendMessage.setTimeStamp(Time::getMillisecondCounterHiRes() * 0.001);
 
         // Create channel pressure message
-        float pressure = changedNote.pressure.asSignedFloat();
+        auto pressure = changedNote.pressure.as7BitInt();
         MidiMessage channelPressureMessage = MidiMessage::channelPressureChange(channel, pressure);
         channelPressureMessage.setTimeStamp(Time::getMillisecondCounterHiRes() * 0.001);
 

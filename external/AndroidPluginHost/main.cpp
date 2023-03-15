@@ -11,7 +11,7 @@
 using namespace juce;
 
 std::unique_ptr<AppModel> appModel{};
-AppModel* getAppModel() {
+static AppModel* getAppModel() {
     if (!appModel)
         appModel = std::make_unique<AppModel>();
     return appModel.get();
@@ -110,7 +110,7 @@ public:
 
                 ~Window() override {
                         isSettingsShown = false;
-                };
+                }
 
                 void closeButtonPressed() override {
                     if (!isSettingsShown)
@@ -307,14 +307,14 @@ public:
     }
 
     void showPluginUI(AudioProcessorGraph::Node::Ptr node) {
-        if (node->getProcessor()->hasEditor()) {
-            auto editor = node->getProcessor()->createEditorIfNeeded();
-            auto window = new PluginWindow(this, node->getProcessor());
-            pluginWindows.add(window);
-            window->setBounds(editor->getBounds());
-            window->setContentOwned(editor, true);
-            window->setVisible(true);
-        }
+        auto processor = node->getProcessor();
+        auto editor = processor->hasEditor() ?
+                processor->createEditorIfNeeded() : new GenericAudioProcessorEditor(*processor);
+        auto window = new PluginWindow(this, processor);
+        pluginWindows.add(window);
+        window->setBounds(editor->getBounds());
+        window->setContentOwned(editor, true);
+        window->setVisible(true);
     }
 
     AudioProcessorGraph::Node::Ptr getSelectedActivePlugin() {
@@ -409,7 +409,7 @@ private:
     ApplicationCommandManager commandManager;
 };
 
-ApplicationCommandManager& getGlobalCommandManager()
+static ApplicationCommandManager& getGlobalCommandManager()
 {
     return dynamic_cast<AndroidPluginHostApplication*> (JUCEApplication::getInstance())->getGlobalCommandManager();
 }
