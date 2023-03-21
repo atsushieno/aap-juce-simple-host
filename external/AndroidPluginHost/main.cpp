@@ -312,7 +312,7 @@ public:
                 processor->createEditorIfNeeded() : new GenericAudioProcessorEditor(*processor);
         auto window = new PluginWindow(this, processor);
         pluginWindows.add(window);
-        window->setBounds(editor->getBounds());
+        window->setBounds(Desktop::getInstance().getDisplays().getPrimaryDisplay()->userArea.reduced(20));
         window->setContentOwned(editor, true);
         window->setVisible(true);
     }

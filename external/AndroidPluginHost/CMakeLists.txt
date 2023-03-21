@@ -25,7 +25,7 @@ include_directories(
 )
 
 # It is not beautiful, but there does not seem to be any way to add custom include directory for modules.
-juce_add_module(${AAP_JUCE_DIR}/modules/juceaap_audio_processors)
+juce_add_module(${AAP_JUCE_DIR}/aap-modules/juceaap_audio_processors)
 
 # dependencies
 find_package(androidaudioplugin REQUIRED CONFIG)
