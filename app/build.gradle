@@ -37,6 +37,7 @@ android {
         implementation libs.kotlin.stdlib.jdk7
         implementation libs.startup.runtime
         implementation libs.aap.core
+        implementation libs.aap.ui.web
         // When debugging, enable this line (and make changes in settings.gradle.)
         //implementation project(":androidaudioplugin")
     }

@@ -20,11 +20,9 @@ juce_add_gui_app(AndroidPluginHost
 if (JUCEAAP_ENABLED)
 
 include_directories(
-        "${AAP_DIR}/include"
         "${JUCE_DIR}/modules"
 )
 
-# It is not beautiful, but there does not seem to be any way to add custom include directory for modules.
 juce_add_module(${AAP_JUCE_DIR}/aap-modules/juceaap_audio_processors)
 
 # dependencies
@@ -86,6 +84,7 @@ target_link_libraries(AndroidPluginHost PUBLIC
         juce::juce_audio_devices
         juce::juce_audio_processors
         juce::juce_audio_utils
+        juce::juce_gui_extra
         juce::juce_recommended_warning_flags
         juce::juce_recommended_config_flags
         juce::juce_recommended_lto_flags
