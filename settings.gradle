@@ -2,5 +2,7 @@ rootProject.name = 'aap-juce-simple-host'
 include ':app'
 // When debugging, enable these lines (and change `implementation` section in build.gradle.
 //include ':androidaudioplugin'
+//include ':androidaudioplugin-ui-web'
 //project(':androidaudioplugin').projectDir = new File('external/aap-core/androidaudioplugin')
+//project(':androidaudioplugin-ui-web').projectDir = new File('external/aap-core/androidaudioplugin-ui-web')
 
