@@ -3,6 +3,9 @@ plugins {
     id 'kotlin-android'
 }
 
+kotlin {
+    jvmToolchain(11)
+}
 
 android {
     compileSdkVersion 33
@@ -52,11 +55,6 @@ android {
 
     buildFeatures {
         prefab true
-    }
-
-    compileOptions {
-        sourceCompatibility = "11"
-        targetCompatibility = "17"
     }
 
     lint {
