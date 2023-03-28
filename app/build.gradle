@@ -57,6 +57,11 @@ android {
         prefab true
     }
 
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+
     lint {
         // LAMESPEC: JuceMidiSupports.java is too error prone so that it always fails to build.
         // We cannot enable modern strict lint checks.
