@@ -23,7 +23,7 @@ include_directories(
         "${JUCE_DIR}/modules"
 )
 
-juce_add_module(${AAP_JUCE_DIR}/aap-modules/juceaap_audio_processors)
+juce_add_module(${AAP_JUCE_DIR}/aap-modules/aap_audio_plugin_client)
 
 # dependencies
 find_package(androidaudioplugin REQUIRED CONFIG)
@@ -31,7 +31,7 @@ find_package(androidaudioplugin REQUIRED CONFIG)
 target_link_libraries(AndroidPluginHost
         PRIVATE
         androidaudioplugin::androidaudioplugin
-        juceaap_audio_processors
+        aap_audio_plugin_client
         )
 
 if (ANDROID)

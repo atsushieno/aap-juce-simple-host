@@ -5,7 +5,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 
 #if JUCEAAP_ENABLED
-#include <juceaap_audio_processors/juceaap_audio_plugin_format.h>
+#include <aap_audio_plugin_client/aap_audio_plugin_client.h>
 #endif
 
 #ifndef APPLICATION_NAME
