@@ -62,6 +62,7 @@ target_compile_definitions(AndroidPluginHost PUBLIC
         -DJUCE_PUSH_NOTIFICATIONS_ACTIVITY="com/rmsl/juce/JuceActivity"
         -DJUCE_PUSH_NOTIFICATIONS=1
         -DJUCE_USE_ANDROID_OBOE_STABILIZED_CALLBACK=1
+        -DJUCE_ANDROID=1
         )
 
 endif(JUCEAAP_ENABLED)
