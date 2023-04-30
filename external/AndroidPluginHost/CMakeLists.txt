@@ -63,6 +63,7 @@ target_compile_definitions(AndroidPluginHost PUBLIC
         -DJUCE_PUSH_NOTIFICATIONS=1
         -DJUCE_USE_ANDROID_OBOE_STABILIZED_CALLBACK=1
         -DJUCE_ANDROID=1
+        -DJUCE_DONT_AUTO_OPEN_MIDI_DEVICES_ON_MOBILE=1
         )
 
 endif(JUCEAAP_ENABLED)
