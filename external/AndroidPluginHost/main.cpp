@@ -30,6 +30,7 @@ class MainComponent : public Component {
     TextButton buttonAddPlugin{"Add"};
     TextButton buttonRemoveActivePlugin{"Remove"};
     TextButton buttonPlayAudio{"Play Audio"};
+    ComboBox comboBoxPresets{};
     TextButton buttonShowUI{"Show UI"};
 
     OwnedArray<DocumentWindow> pluginWindows{};
@@ -159,6 +160,17 @@ public:
             }
         };
 
+        comboBoxActivePlugins.onChange = [&] {
+            auto node = getSelectedActivePlugin();
+            if (node)
+                updateActivePluginPresets(node);
+        };
+        comboBoxPresets.onChange = [&] {
+            auto node = getSelectedActivePlugin();
+            if (node)
+                setSelectedPreset(node);
+        };
+
         buttonRemoveActivePlugin.onClick = [&] {
             AlertWindow::showMessageBoxAsync(MessageBoxIconType::WarningIcon,
                                              "Not supported",
@@ -191,8 +203,9 @@ public:
         comboBoxActivePlugins.setBounds(0, 250, 400, 50);
         buttonRemoveActivePlugin.setBounds(0, 300, 150, 50);
         buttonPlayAudio.setBounds(200, 300, 150, 50);
-        buttonShowUI.setBounds(0, 350, 150, 50);
-        labelStatusText.setBounds(200, 350, 200, 50);
+        comboBoxPresets.setBounds(0, 350, 400, 50);
+        buttonShowUI.setBounds(0, 400, 150, 50);
+        labelStatusText.setBounds(200, 400, 200, 50);
 
         addAndMakeVisible(comboBoxPluginFormats);
         addAndMakeVisible(buttonScanPlugins);
@@ -203,6 +216,7 @@ public:
         addAndMakeVisible(comboBoxActivePlugins);
         addAndMakeVisible(buttonRemoveActivePlugin);
         addAndMakeVisible(buttonPlayAudio);
+        addAndMakeVisible(comboBoxPresets);
         addAndMakeVisible(buttonShowUI);
         addAndMakeVisible(labelStatusText);
         labelStatusText.setText("Ready", NotificationType::sendNotificationAsync);
@@ -215,7 +229,7 @@ public:
         midiKeyboardState.addListener(&appModel->getPluginPlayer().getMidiMessageCollector());
         mpeListener = std::make_unique<MPEDispatchingListener>(appModel->getPluginPlayer().getMidiMessageCollector());
         mpeInstrument.addListener(mpeListener.get());
-        mpeToggle.setBounds(0, 400, 400, 50);
+        mpeToggle.setBounds(0, 450, 400, 50);
         mpeToggle.onClick = [&] {
             if (midiKeyboard.isVisible())
                 mpeKeyboard.setLowestVisibleKey(midiKeyboard.getLowestVisibleKey());
@@ -225,11 +239,11 @@ public:
             mpeKeyboard.setVisible(!mpeKeyboard.isVisible());
         };
         addAndMakeVisible(mpeToggle);
-        midiKeyboard.setBounds(0, 450, 400, 50);
+        midiKeyboard.setBounds(0, 500, 400, 50);
         addAndMakeVisible(midiKeyboard);
         mpeInstrument.enableLegacyMode();
         mpeInstrument.setZoneLayout(mpeZoneLayout);
-        mpeKeyboard.setBounds(0, 450, 400, 50);
+        mpeKeyboard.setBounds(0, 500, 400, 50);
         addAndMakeVisible(mpeKeyboard);
         mpeKeyboard.setVisible(false);
 
@@ -304,6 +318,24 @@ public:
         comboBoxPlugins.clear(NotificationType::sendNotificationAsync);
         for (auto& desc : plugins)
             comboBoxPlugins.addItem(desc.descriptiveName, comboBoxPlugins.getNumItems() + 1);
+    }
+
+    StringArray presetNames{};
+
+    void updateActivePluginPresets(AudioProcessorGraph::Node::Ptr node) {
+        auto processor = node->getProcessor();
+        comboBoxPresets.clear();
+        presetNames.clear();
+        for (int32_t i = 0, n = processor->getNumPrograms(); i < n; i++)
+            presetNames.add(processor->getProgramName(i));
+        for (int32_t i = 0, n = processor->getNumPrograms(); i < n; i++) {
+            comboBoxPresets.addItem(presetNames[i], i + 1);
+        }
+    }
+
+    void setSelectedPreset(AudioProcessorGraph::Node::Ptr node) {
+        auto processor = node->getProcessor();
+        processor->setCurrentProgram(comboBoxPresets.getSelectedItemIndex(_));
     }
 
     void showPluginUI(AudioProcessorGraph::Node::Ptr node) {
