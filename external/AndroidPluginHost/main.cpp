@@ -335,7 +335,7 @@ public:
 
     void setSelectedPreset(AudioProcessorGraph::Node::Ptr node) {
         auto processor = node->getProcessor();
-        processor->setCurrentProgram(comboBoxPresets.getSelectedItemIndex(_));
+        processor->setCurrentProgram(comboBoxPresets.getSelectedItemIndex());
     }
 
     void showPluginUI(AudioProcessorGraph::Node::Ptr node) {
