@@ -72,5 +72,6 @@ android {
     }
 
     ndkVersion libs.versions.ndk.get()
+    namespace 'org.androidaudioplugin.samples.simple_plugin_host'
 }
 
