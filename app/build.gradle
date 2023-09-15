@@ -4,16 +4,16 @@ plugins {
 }
 
 kotlin {
-    jvmToolchain(11)
+    jvmToolchain(17)
 }
 
 android {
-    compileSdkVersion 33
+    compileSdk = 34
 
     defaultConfig {
         applicationId "org.androidaudioplugin.samples.juce.simple_plugin_host"
-        minSdkVersion    29
-        targetSdkVersion 33
+        minSdk = 29
+        targetSdk = 34
         externalNativeBuild {
             cmake {
                 arguments "-DJUCEAAP_ENABLED=1",
@@ -41,12 +41,15 @@ android {
         implementation libs.startup.runtime
         implementation libs.aap.core
         implementation libs.aap.ui.compose
+        implementation libs.aap.ui.compose.app
         implementation libs.aap.ui.web
         // When debugging, enable this line (and make changes in settings.gradle.)
         //implementation project(":androidaudioplugin")
         //implementation project(":androidaudioplugin-samples-host-engine")
         //implementation project(":androidaudioplugin-ui-compose")
         //implementation project(":androidaudioplugin-ui-web")
+
+        testImplementation libs.test.core
     }
 
     externalNativeBuild {
@@ -61,8 +64,8 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
 
     lint {
