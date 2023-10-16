@@ -21,6 +21,7 @@ if (JUCEAAP_ENABLED)
 
 include_directories(
         "${JUCE_DIR}/modules"
+        "${AAP_JUCE_DIR}/aap-modules/aap_audio_plugin_client"
 )
 
 juce_add_module(${AAP_JUCE_DIR}/aap-modules/aap_audio_plugin_client)

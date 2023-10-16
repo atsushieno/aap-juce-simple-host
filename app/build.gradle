@@ -41,14 +41,13 @@ android {
         implementation libs.startup.runtime
         implementation libs.aap.core
         implementation libs.aap.ui.compose
-        implementation libs.aap.ui.compose.app
         implementation libs.aap.ui.web
         // When debugging, enable this line (and make changes in settings.gradle.)
-        //implementation project(":androidaudioplugin")
-        //implementation project(":androidaudioplugin-samples-host-engine")
-        //implementation project(":androidaudioplugin-ui-compose")
-        //implementation project(":androidaudioplugin-ui-web")
-
+        /*
+        implementation project(":androidaudioplugin")
+        implementation project(":androidaudioplugin-ui-compose")
+        implementation project(":androidaudioplugin-ui-web")
+        */
         testImplementation libs.test.core
     }
 
