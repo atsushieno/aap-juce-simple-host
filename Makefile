@@ -18,9 +18,8 @@ AAP_JUCE_CMAKE_PATCH_HOSTING=1
 
 # JUCE patches if any
 JUCE_PATCHES= \
-	juce-modules.patch \
-	$(shell pwd)/external/aap-juce/JUCE-support-Android-thread-via-dalvik-juce7.patch \
-	$(shell pwd)/external/aap-juce/JUCE-support-Android-disable-detach-current-thread.patch
+	$(PWD)/juce-modules.patch \
+	$(shell pwd)/external/aap-juce/juce-patches/7.0.6/thread-via-dalvik.patch
 JUCE_PATCH_DEPTH=1
 
 include $(AAP_JUCE_DIR)/Makefile.cmake-common
