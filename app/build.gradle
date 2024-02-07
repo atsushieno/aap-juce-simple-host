@@ -41,15 +41,15 @@ android {
         implementation libs.startup.runtime
         testImplementation libs.test.core
 
+        /*
         implementation libs.aap.core
         implementation libs.aap.ui.compose
         implementation libs.aap.ui.web
+         */
         // When debugging, enable this line (and make changes in settings.gradle.)
-        /*
         implementation project(":androidaudioplugin")
         implementation project(":androidaudioplugin-ui-compose")
         implementation project(":androidaudioplugin-ui-web")
-         */
     }
 
     externalNativeBuild {
