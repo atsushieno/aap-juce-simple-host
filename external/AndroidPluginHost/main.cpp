@@ -147,7 +147,9 @@ public:
                 for (auto format : formatManager.getFormats()) {
                     if (format->getName() != comboBoxPluginFormats.getText())
                         continue;
-                    format->createPluginInstanceAsync(desc, 44100, 1024 * 32, [&](std::unique_ptr<AudioPluginInstance> instance, String error) {
+                    juce::AudioDeviceManager::AudioDeviceSetup setup;
+                    appModel->getAudioDeviceManager().getAudioDeviceSetup(setup);
+                    format->createPluginInstanceAsync(desc, setup.sampleRate, 1024 * 32, [&](std::unique_ptr<AudioPluginInstance> instance, String error) {
                         if (error.isEmpty()) {
                             comboBoxActivePlugins.addItem(instance->getName(), comboBoxActivePlugins.getNumItems() + 1);
                             comboBoxActivePlugins.setSelectedId(comboBoxActivePlugins.getNumItems(), NotificationType::sendNotificationAsync);

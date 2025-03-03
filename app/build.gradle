@@ -8,12 +8,11 @@ kotlin {
 }
 
 android {
-    compileSdk = 34
+    compileSdk = libs.versions.android.compileSdk.get().toInteger()
 
     defaultConfig {
         applicationId "org.androidaudioplugin.samples.juce.simple_plugin_host"
-        minSdk = 29
-        targetSdk = 34
+        minSdk = libs.versions.android.minSdk.get().toInteger()
         externalNativeBuild {
             cmake {
                 arguments "-DJUCEAAP_ENABLED=1",
@@ -39,17 +38,16 @@ android {
         implementation libs.androidx.core.ktx
         implementation libs.kotlin.stdlib.jdk8
         implementation libs.startup.runtime
-        testImplementation libs.test.core
 
-        /*
         implementation libs.aap.core
         implementation libs.aap.ui.compose
         implementation libs.aap.ui.web
-         */
         // When debugging, enable this line (and make changes in settings.gradle.)
+        /*
         implementation project(":androidaudioplugin")
         implementation project(":androidaudioplugin-ui-compose")
         implementation project(":androidaudioplugin-ui-web")
+         */
     }
 
     externalNativeBuild {
