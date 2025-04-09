@@ -16,6 +16,10 @@ android {
     defaultConfig {
         applicationId "org.androidaudioplugin.samples.juce.simple_plugin_host"
         minSdk = libs.versions.android.minSdk.get().toInteger()
+        ndk {
+            // should we make it customizable? We skip others just to reduce build time.
+            abiFilters "x86_64", "arm64-v8a"
+        }
         externalNativeBuild {
             cmake {
                 arguments "-DJUCEAAP_ENABLED=1",
