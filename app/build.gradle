@@ -8,6 +8,9 @@ kotlin {
 }
 
 android {
+    ndkVersion libs.versions.ndk.get()
+    namespace 'org.androidaudioplugin.samples.juce.simple_plugin_host'
+
     compileSdk = libs.versions.android.compileSdk.get().toInteger()
 
     defaultConfig {
@@ -71,8 +74,5 @@ android {
         // We cannot enable modern strict lint checks.
         abortOnError = false
     }
-
-    ndkVersion libs.versions.ndk.get()
-    namespace 'org.androidaudioplugin.samples.simple_plugin_host'
 }
 
