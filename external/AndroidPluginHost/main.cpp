@@ -60,13 +60,24 @@ class MainComponent : public Component {
 
     class PluginWindow : public DocumentWindow {
         MainComponent* owner;
+        bool closeRequested{};
     public:
         PluginWindow(MainComponent *mainComponent, AudioProcessor* processor)
         : DocumentWindow(processor->getName(), Colours::black, DocumentWindow::TitleBarButtons::allButtons),
         owner(mainComponent) {}
 
         void closeButtonPressed() override {
-            owner->closePluginWindow(this);
+            if (closeRequested)
+                return;
+
+            closeRequested = true;
+            setVisible(false);
+
+            SafePointer<PluginWindow> safeThis { this };
+            MessageManager::callAsync([safeThis] {
+                if (auto* window = safeThis.getComponent())
+                    window->owner->closePluginWindow(window);
+            });
         }
     };
 
