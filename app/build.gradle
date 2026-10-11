@@ -42,10 +42,15 @@ android {
         implementation libs.kotlin.stdlib.jdk8
         implementation libs.startup.runtime
 
-        // Dogfooding the buses work (see settings.gradle).
+        implementation libs.aap.core
+        implementation libs.aap.ui.compose
+        implementation libs.aap.ui.web
+        // switch to them when you want to debug into aap-core (see settings.gradle).
+        /*
         implementation project(":androidaudioplugin")
         implementation project(":androidaudioplugin-ui-compose")
         implementation project(":androidaudioplugin-ui-web")
+         */
     }
 
     externalNativeBuild {
