@@ -21,59 +21,7 @@ juce_add_gui_app(AndroidPluginHost
         #NEEDS_WEB_BROWSER=0
 )
 
-# begin JUCEAAP specific -->
-if (JUCEAAP_ENABLED)
-
-include_directories(
-        "${AAP_JUCE_SOURCE_DIR}/modules"
-        "${AAP_JUCE_DIR}/aap-modules/aap_audio_plugin_client"
-)
-
-juce_add_module(${AAP_JUCE_DIR}/aap-modules/aap_audio_plugin_client)
-
-# dependencies
-find_package(androidaudioplugin REQUIRED CONFIG)
-
-target_link_libraries(AndroidPluginHost
-        PRIVATE
-        androidaudioplugin::androidaudioplugin
-        aap_audio_plugin_client
-        )
-
-if (ANDROID)
-find_library(log "log")
-find_library(android "android")
-find_library(glesv2 "GLESv2")
-find_library(egl "EGL")
-set(cpufeatures_lib "cpufeatures")
-set(oboe_lib "oboe")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3")
-
-target_link_libraries(AndroidPluginHost
-        PRIVATE
-        ${log}
-        ${android}
-        ${glesv2}
-        ${egl}
-        )
-endif (ANDROID)
-
-target_compile_definitions(AndroidPluginHost PUBLIC
-        JUCEAAP_ENABLED=1
-        JUCEAAP_HAVE_AUDIO_PLAYHEAD_NEW_POSITION_INFO=1
-        JUCEAAP_USE_UNIQUE_ID=1
-        JUCEAAP_HOSTED_PARAMETER=1
-        # LAMESPEC: JuceActivity blindly calls appOnResume() which is actually generated ONLY IF  JUCE_PUSH_NOTIFICATIONS_ACTIVITY is specified.
-        # What happens if not? java.lang.UnsatisfiedLinkError: No implementation found for void com.rmsl.juce.JuceActivity.appOnResume() !
-        -DJUCE_PUSH_NOTIFICATIONS_ACTIVITY="com/rmsl/juce/JuceActivity"
-        -DJUCE_PUSH_NOTIFICATIONS=1
-        -DJUCE_USE_ANDROID_OBOE_STABILIZED_CALLBACK=1
-        -DJUCE_ANDROID=1
-        -DJUCE_DONT_AUTO_OPEN_MIDI_DEVICES_ON_MOBILE=1
-        )
-
-endif(JUCEAAP_ENABLED)
-# <-- end JUCEAAP specific
+aap_juce_host(TARGET AndroidPluginHost)
 
 
 target_compile_definitions(AndroidPluginHost PUBLIC
