@@ -21,7 +21,7 @@ android {
         }
         externalNativeBuild {
             cmake {
-                arguments "-DJUCEAAP_ENABLED=1",
+                arguments "-DCMAKE_BUILD_TYPE=Release", "-DJUCEAAP_ENABLED=1",
                         "-DANDROID_STL=c++_shared",
                         "-DANDROID_CPP_FEATURES=exceptions rtti"
             }
