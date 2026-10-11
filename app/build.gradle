@@ -1,6 +1,5 @@
 plugins {
     id 'com.android.application'
-    id 'kotlin-android'
 }
 
 kotlin {
@@ -23,9 +22,6 @@ android {
         externalNativeBuild {
             cmake {
                 arguments "-DJUCEAAP_ENABLED=1",
-                        "-DJUCE_DIR=${System.env.JUCE_DIR != null ? System.env.JUCE_DIR : "$projectDir/../external/AndroidPluginHost/JUCE"}",
-                        "-DAAP_DIR=${System.env.AAP_DIR != null ? System.env.AAP_DIR : "$projectDir/../external/aap-core"}",
-                        "-DAAP_JUCE_DIR=${System.env.AAP_JUCE_DIR != null ? System.env.AAP_JUCE_DIR : "$projectDir/../external/aap-juce"}",
                         "-DANDROID_STL=c++_shared",
                         "-DANDROID_CPP_FEATURES=exceptions rtti"
             }
@@ -46,15 +42,10 @@ android {
         implementation libs.kotlin.stdlib.jdk8
         implementation libs.startup.runtime
 
-        implementation libs.aap.core
-        implementation libs.aap.ui.compose
-        implementation libs.aap.ui.web
-        // When debugging, enable this line (and make changes in settings.gradle.)
-        /*
+        // Dogfooding the buses work (see settings.gradle).
         implementation project(":androidaudioplugin")
         implementation project(":androidaudioplugin-ui-compose")
         implementation project(":androidaudioplugin-ui-web")
-         */
     }
 
     externalNativeBuild {
@@ -80,3 +71,4 @@ android {
     }
 }
 
+apply from: '../external/aap-juce/gradle/aap-juce.gradle'

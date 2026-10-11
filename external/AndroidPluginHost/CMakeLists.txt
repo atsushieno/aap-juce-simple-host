@@ -1,4 +1,9 @@
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.22)
+
+get_filename_component(app_source "${CMAKE_CURRENT_LIST_DIR}" REALPATH)
+add_subdirectory("${app_source}/../aap-juce" "${CMAKE_CURRENT_BINARY_DIR}/aap-juce" EXCLUDE_FROM_ALL)
+aap_juce_configure(JUCE_SOURCE_DIR external/JUCE MODE HOST
+        EXTRA_JUCE_PATCHES "${app_source}/../../juce-modules.patch" ADOPT_EXISTING_PATCHES)
 project(AndroidPluginHost)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -20,7 +25,7 @@ juce_add_gui_app(AndroidPluginHost
 if (JUCEAAP_ENABLED)
 
 include_directories(
-        "${JUCE_DIR}/modules"
+        "${AAP_JUCE_SOURCE_DIR}/modules"
         "${AAP_JUCE_DIR}/aap-modules/aap_audio_plugin_client"
 )
 

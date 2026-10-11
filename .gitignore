@@ -5,4 +5,5 @@ build
 .gradle
 release-builds
 .DS_Store
-
+.aap-juce/
+.stamp-app

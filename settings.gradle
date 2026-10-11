@@ -17,11 +17,10 @@ dependencyResolutionManagement {
 rootProject.name = 'aap-juce-simple-host'
 include ':app'
 // When debugging, enable these lines (and change `implementation` section in build.gradle.
-/*
+// Dogfooding the buses work: use the aap-core working tree.
 include ':androidaudioplugin'
 include ':androidaudioplugin-ui-web'
 include ':androidaudioplugin-ui-compose'
-project(':androidaudioplugin').projectDir = new File('external/aap-core/androidaudioplugin')
-project(':androidaudioplugin-ui-compose').projectDir = new File('external/aap-core/androidaudioplugin-ui-compose')
-project(':androidaudioplugin-ui-web').projectDir = new File('external/aap-core/androidaudioplugin-ui-web')
-*/
+project(':androidaudioplugin').projectDir = new File('/Users/atsushi/sources/AAP/aap-core/androidaudioplugin')
+project(':androidaudioplugin-ui-compose').projectDir = new File('/Users/atsushi/sources/AAP/aap-core/androidaudioplugin-ui-compose')
+project(':androidaudioplugin-ui-web').projectDir = new File('/Users/atsushi/sources/AAP/aap-core/androidaudioplugin-ui-web')
